@@ -63,5 +63,5 @@ def convert_to_png(base_path):
     df.to_csv(os.path.join(base_path, 'dataset.csv'))
 
 if __name__ == '__main__':
-    base_path = 'path_to_the_base_directory'
+    base_path = '/path_to_base_directory'
     convert_to_png(base_path)
