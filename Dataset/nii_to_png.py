@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import os
 import matplotlib.pyplot as plt
+from PIL import Image
 
 def read_nii(filepath):
     '''
@@ -46,22 +47,35 @@ def convert_to_png(base_path):
         mask_file = 'Img_' + case + '_Labels.nii'
         # slice the nii images
         img = read_nii(os.path.join(nii_imgs, img_file))
-        mask = read_nii(os.path.join(nii_masks, mask_file))
+        mask = read_nii(os.path.join(nii_masks, mask_file))*255
+        kaggle = '/kaggle/input/lumbar-spine-segmentation'
         for slice in range(img.shape[0]):
             case_list = []
             slice_img = img_file[:-4] + '_Slice_' + str(slice) + '.png'
             slice_mask = mask_file[:-4] + '_Slice_' + str(slice) + '.png'
-            plt.imsave(os.path.join(png_imgs, 'Case_'+case, slice_img), np.rot90(img[slice]), cmap='bone')
-            plt.imsave(os.path.join(png_masks, 'Case_' + case, slice_mask), np.rot90(mask[slice]), cmap='bone')
-            case_list.extend([case, slice,
-                              os.path.join(nii_imgs, img_file),
-                              os.path.join(nii_masks, mask_file),
-                              os.path.join(png_imgs, 'Case_' + case, slice_img),
-                              os.path.join(png_masks, 'Case_' + case, slice_mask)])
+            Image.fromarray(np.rot90(img[slice])).convert("L").save(os.path.join(png_imgs, 'Case_'+case, slice_img))
+            Image.fromarray(np.rot90(mask[slice])).convert("L").save(os.path.join(png_masks, 'Case_' + case, slice_mask))
+            # plt.imsave(os.path.join(png_imgs, 'Case_'+case, slice_img), np.rot90(img[slice]), cmap='bone')
+            # plt.imsave(os.path.join(png_masks, 'Case_' + case, slice_mask), np.rot90(mask[slice]), cmap='bone')
+            id = 'Case_' + case + '_Slice_' + str(slice)
+            # empty = 'false' if np.all(mask[slice]) else 'true'
+            if np.max(mask[slice])==0:
+                empty = 'true'
+            else:
+                empty = 'false'
+            case_list.extend([id, case, slice,
+                              os.path.join(kaggle, 'nii/images', img_file),
+                              os.path.join(kaggle, 'nii/masks',  mask_file),
+                              os.path.join(kaggle, 'png/images', 'Case_' + case, slice_img),
+                              os.path.join(kaggle, 'png/masks', 'Case_' + case, slice_mask),
+                              empty])
             data.append(case_list)
-    df = pd.DataFrame(data, columns=['case', 'slice', 'image_path (nii)', 'mask_path (nii)', 'image_slices (png)', 'mask_slices (png)'])
-    df.to_csv(os.path.join(base_path, 'dataset.csv'))
+
+    df = pd.DataFrame(data, columns=['id', 'case', 'slice', 'image_path (nii)',
+                                     'mask_path (nii)', 'image_slices (png)',
+                                     'mask_slices (png)', 'empty'])
+    df.to_csv(os.path.join(base_path, 'dataset.csv'), index=False)
 
 if __name__ == '__main__':
-    base_path = '/path_to_base_directory'
+    base_path = '/home/nova/Desktop/Nova/Segmentations/Lumbar_Spine_dataset'
     convert_to_png(base_path)
